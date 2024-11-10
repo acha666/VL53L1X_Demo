@@ -22,7 +22,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <errno.h>
+#include <sys/unistd.h> // STDOUT_FILENO, STDERR_FILENO
+#include "usbd_cdc_if.h"
+#include "app_main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,7 +63,20 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int _write(int file, char *data, int len)
+{
+  if ((file != STDOUT_FILENO) && (file != STDERR_FILENO))
+  {
+    errno = EBADF;
+    return -1;
+  }
 
+  HAL_StatusTypeDef status =
+      CDC_Transmit_FS((uint8_t *)data, len);
+
+  // return # of bytes written - as best we can tell
+  return (status == HAL_OK ? len : 0);
+}
 /* USER CODE END 0 */
 
 /**
@@ -101,13 +117,10 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  char msg[] = "Hello, World!\r\n";
+  app_main_init();
   while (1)
   {
-    HAL_UART_Transmit(&huart1, (uint8_t *)msg, sizeof(msg), HAL_MAX_DELAY);
-    CDC_Transmit_FS((uint8_t *)msg, sizeof(msg));
-    HAL_GPIO_TogglePin(Board_LED_GPIO_Port, Board_LED_Pin);
-    HAL_Delay(1000);
+    app_main_loop();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
